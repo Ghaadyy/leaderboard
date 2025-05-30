@@ -215,7 +215,13 @@ export function SubmissionTracker() {
                               ) : (
                                 <XCircle className="w-3 h-3 text-red-600" />
                               )}
-                              <span className="font-mono">test</span>
+                              <span
+                                className={`font-mono text-${
+                                  submission.isCorrect ? "green" : "red"
+                                }-600 `}
+                              >
+                                {submission.isCorrect ? "Correct" : "Incorrect"}
+                              </span>
                             </div>
                             <div className="flex items-center gap-1 text-muted-foreground">
                               <Clock className="w-3 h-3" />
