@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { AdminPanel } from "@/components/admin-panel"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { useState, useEffect } from "react";
+import { AdminPanel } from "@/components/admin-panel";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import {
   getChallenges,
   getTeams,
@@ -17,62 +17,79 @@ import {
   addSubmission,
   markNonInteractiveSolved,
   markCheckpointsSolved,
-} from "@/lib/store"
-import type { Challenge, Team, Checkpoint } from "@/types/types"
-import { AuthGuard } from "@/components/auth-guard"
+} from "@/lib/store";
+import type { Challenge, Team, Checkpoint } from "@/types/types";
+import { AuthGuard } from "@/components/auth-guard";
 
 export default function AdminPage() {
-  const [challenges, setChallenges] = useState<Challenge[]>([])
-  const [teams, setTeams] = useState<Team[]>([])
-  const [loading, setLoading] = useState(true)
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Load data on component mount
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
-        const [loadedChallenges, loadedTeams] = await Promise.all([getChallenges(), getTeams()])
+        const [loadedChallenges, loadedTeams] = await Promise.all([
+          getChallenges(),
+          getTeams(),
+        ]);
 
-        setChallenges(loadedChallenges)
-        setTeams(loadedTeams)
+        setChallenges(loadedChallenges);
+        setTeams(loadedTeams);
       } catch (error) {
-        console.error("Error loading data:", error)
+        console.error("Error loading data:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    loadData()
-  }, [])
+    loadData();
+  }, []);
 
   // Refresh data helper
   const refreshData = async () => {
-    const [loadedChallenges, loadedTeams] = await Promise.all([getChallenges(), getTeams()])
-    setChallenges(loadedChallenges)
-    setTeams(loadedTeams)
-  }
+    const [loadedChallenges, loadedTeams] = await Promise.all([
+      getChallenges(),
+      getTeams(),
+    ]);
+    setChallenges(loadedChallenges);
+    setTeams(loadedTeams);
+  };
 
   // Mark checkpoints as solved for a team
-  const handleMarkCheckpointsSolved = async (teamId: string, challengeId: string, checkpointIds: string[]) => {
-    const success = await markCheckpointsSolved(teamId, challengeId, checkpointIds)
+  const handleMarkCheckpointsSolved = async (
+    teamId: string,
+    challengeId: string,
+    checkpointIds: string[]
+  ) => {
+    const success = await markCheckpointsSolved(
+      teamId,
+      challengeId,
+      checkpointIds
+    );
 
     if (success) {
-      await refreshData()
+      await refreshData();
     }
 
-    return success
-  }
+    return success;
+  };
 
   // Mark a non-interactive challenge as solved
-  const handleMarkNonInteractiveSolved = async (teamId: string, challengeId: string) => {
-    const success = await markNonInteractiveSolved(teamId, challengeId)
+  const handleMarkNonInteractiveSolved = async (
+    teamId: string,
+    challengeId: string
+  ) => {
+    const success = await markNonInteractiveSolved(teamId, challengeId);
 
     if (success) {
-      await refreshData()
+      await refreshData();
     }
 
-    return success
-  }
+    return success;
+  };
 
   // Add a new challenge
   const handleAddChallenge = async (
@@ -81,7 +98,7 @@ export default function AdminPage() {
     type: "interactive" | "non-interactive",
     points: number,
     penaltyPoints: number,
-    checkpoints?: Checkpoint[],
+    checkpoints?: Checkpoint[]
   ) => {
     const success = await addChallenge(
       name,
@@ -89,15 +106,15 @@ export default function AdminPage() {
       type,
       points,
       penaltyPoints,
-      checkpoints?.map((cp) => ({ name: cp.name, points: cp.points })),
-    )
+      checkpoints?.map((cp) => ({ name: cp.name, points: cp.points }))
+    );
 
     if (success) {
-      await refreshData()
+      await refreshData();
     }
 
-    return success
-  }
+    return success;
+  };
 
   // Update a challenge
   const handleUpdateChallenge = async (
@@ -107,7 +124,7 @@ export default function AdminPage() {
     type: "interactive" | "non-interactive",
     points: number,
     penaltyPoints: number,
-    checkpoints?: Checkpoint[],
+    checkpoints?: Checkpoint[]
   ) => {
     const success = await updateChallenge(
       challengeId,
@@ -116,75 +133,74 @@ export default function AdminPage() {
       type,
       points,
       penaltyPoints,
-      checkpoints?.map((cp) => ({ name: cp.name, points: cp.points })),
-    )
+      checkpoints?.map((cp) => ({ name: cp.name, points: cp.points }))
+    );
 
     if (success) {
-      await refreshData()
+      await refreshData();
     }
 
-    return success
-  }
+    return success;
+  };
 
   // Delete a challenge
   const handleDeleteChallenge = async (challengeId: string) => {
-    const success = await deleteChallenge(challengeId)
+    const success = await deleteChallenge(challengeId);
 
     if (success) {
-      await refreshData()
+      await refreshData();
     }
 
-    return success
-  }
+    return success;
+  };
 
   // Add a new team
   const handleAddTeam = async (name: string) => {
-    const newTeam = await addTeam(name)
+    const newTeam = await addTeam(name);
 
     if (newTeam) {
-      await refreshData()
+      await refreshData();
     }
 
-    return !!newTeam
-  }
+    return !!newTeam;
+  };
 
   // Update a team
   const handleUpdateTeam = async (teamId: string, name: string) => {
-    const success = await updateTeam(teamId, name)
+    const success = await updateTeam(teamId, name);
 
     if (success) {
-      await refreshData()
+      await refreshData();
     }
 
-    return success
-  }
+    return success;
+  };
 
   // Delete a team
   const handleDeleteTeam = async (teamId: string) => {
-    const success = await deleteTeam(teamId)
+    const success = await deleteTeam(teamId);
 
     if (success) {
-      await refreshData()
+      await refreshData();
     }
 
-    return success
-  }
+    return success;
+  };
 
   // Add a submission
   const handleAddSubmission = async (
     teamId: string,
     challengeId: string,
-    submissionText: string,
-    isCorrect: boolean,
+    isCorrect: boolean
   ) => {
-    const success = await addSubmission(teamId, challengeId, submissionText, isCorrect)
+    const success = await addSubmission(teamId, challengeId, isCorrect);
 
     if (success) {
-      await refreshData()
+      await refreshData();
     }
 
-    return success
-  }
+    return success;
+  };
 
   if (loading) {
     return (
@@ -193,7 +209,7 @@ export default function AdminPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </main>
-    )
+    );
   }
 
   return (
@@ -226,5 +242,5 @@ export default function AdminPage() {
         </div>
       </main>
     </AuthGuard>
-  )
+  );
 }

@@ -1,45 +1,52 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield } from "lucide-react"
-import Link from "next/link"
-import { useAuth } from "@/components/auth-provider"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Shield } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/components/auth-provider";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const { login } = useAuth()
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     try {
-      const success = await login(username, password)
+      const success = await login(username, password);
 
       if (success) {
-        router.push("/")
+        router.push("/");
       } else {
-        setError("Invalid username or password")
+        setError("Invalid username or password");
       }
     } catch (error) {
-      setError("An error occurred. Please try again.")
+      setError("An error occurred. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <main className="flex items-center justify-center min-h-screen bg-muted/40">
@@ -49,7 +56,9 @@ export default function LoginPage() {
             <Shield className="h-6 w-6 text-primary" />
           </div>
           <CardTitle className="text-2xl text-center">Sign In</CardTitle>
-          <CardDescription className="text-center">Enter your credentials to access the leaderboard</CardDescription>
+          <CardDescription className="text-center">
+            Enter your credentials to access the leaderboard
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
@@ -84,7 +93,11 @@ export default function LoginPage() {
           </form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
-          <Button className="w-full" onClick={handleSubmit} disabled={isLoading}>
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={isLoading}
+          >
             {isLoading ? "Signing In..." : "Sign In"}
           </Button>
           <p className="text-sm text-muted-foreground text-center">
@@ -93,11 +106,8 @@ export default function LoginPage() {
               Sign up
             </Link>
           </p>
-          <div className="text-center text-xs text-muted-foreground mt-4">
-            <p>Demo account: admin / admin123</p>
-          </div>
         </CardFooter>
       </Card>
     </main>
-  )
+  );
 }

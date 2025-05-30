@@ -1,35 +1,54 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Textarea } from "@/components/ui/textarea"
-import { calculateTotalChallengePoints } from "@/lib/store"
-import { SubmissionTracker } from "@/components/submission-tracker"
-import { TeamManager } from "@/components/team-manager"
-import { ChallengeManager } from "@/components/challenge-manager"
-import type { Challenge, Team, ChallengeType, Checkpoint } from "@/types/types"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { calculateTotalChallengePoints } from "@/lib/store";
+import { SubmissionTracker } from "@/components/submission-tracker";
+import { TeamManager } from "@/components/team-manager";
+import { ChallengeManager } from "@/components/challenge-manager";
+import type { Challenge, Team, ChallengeType, Checkpoint } from "@/types/types";
 
 interface AdminPanelProps {
-  teams: Team[]
-  challenges: Challenge[]
-  onMarkNonInteractiveSolved: (teamId: string, challengeId: string) => Promise<boolean>
-  onMarkCheckpointsSolved: (teamId: string, challengeId: string, checkpointIds: string[]) => Promise<boolean>
+  teams: Team[];
+  challenges: Challenge[];
+  onMarkNonInteractiveSolved: (
+    teamId: string,
+    challengeId: string
+  ) => Promise<boolean>;
+  onMarkCheckpointsSolved: (
+    teamId: string,
+    challengeId: string,
+    checkpointIds: string[]
+  ) => Promise<boolean>;
   onAddChallenge: (
     name: string,
     description: string,
     type: ChallengeType,
     points: number,
     penaltyPoints: number,
-    checkpoints?: Checkpoint[],
-  ) => Promise<boolean>
+    checkpoints?: Checkpoint[]
+  ) => Promise<boolean>;
   onUpdateChallenge: (
     challengeId: string,
     name: string,
@@ -37,13 +56,17 @@ interface AdminPanelProps {
     type: ChallengeType,
     points: number,
     penaltyPoints: number,
-    checkpoints?: Checkpoint[],
-  ) => Promise<boolean>
-  onDeleteChallenge: (challengeId: string) => Promise<boolean>
-  onAddTeam: (name: string) => Promise<boolean>
-  onUpdateTeam: (teamId: string, name: string) => Promise<boolean>
-  onDeleteTeam: (teamId: string) => Promise<boolean>
-  onAddSubmission: (teamId: string, challengeId: string, submissionText: string, isCorrect: boolean) => Promise<boolean>
+    checkpoints?: Checkpoint[]
+  ) => Promise<boolean>;
+  onDeleteChallenge: (challengeId: string) => Promise<boolean>;
+  onAddTeam: (name: string) => Promise<boolean>;
+  onUpdateTeam: (teamId: string, name: string) => Promise<boolean>;
+  onDeleteTeam: (teamId: string) => Promise<boolean>;
+  onAddSubmission: (
+    teamId: string,
+    challengeId: string,
+    isCorrect: boolean
+  ) => Promise<boolean>;
 }
 
 export function AdminPanel({
@@ -59,41 +82,46 @@ export function AdminPanel({
   onDeleteTeam,
   onAddSubmission,
 }: AdminPanelProps) {
-  const [selectedTeamId, setSelectedTeamId] = useState<string>("")
-  const [selectedChallengeId, setSelectedChallengeId] = useState<string>("")
-  const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null)
-  const [selectedCheckpoints, setSelectedCheckpoints] = useState<string[]>([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("");
+  const [selectedChallengeId, setSelectedChallengeId] = useState<string>("");
+  const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(
+    null
+  );
+  const [selectedCheckpoints, setSelectedCheckpoints] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Submission form state
-  const [submissionTeamId, setSubmissionTeamId] = useState<string>("")
-  const [submissionChallengeId, setSubmissionChallengeId] = useState<string>("")
-  const [submissionText, setSubmissionText] = useState("")
-  const [submissionIsCorrect, setSubmissionIsCorrect] = useState(false)
+  const [submissionTeamId, setSubmissionTeamId] = useState<string>("");
+  const [submissionChallengeId, setSubmissionChallengeId] =
+    useState<string>("");
+  const [submissionIsCorrect, setSubmissionIsCorrect] = useState(false);
 
-  const { toast } = useToast()
+  const { toast } = useToast();
 
   // Update selected challenge when challenge ID changes
   useEffect(() => {
     if (selectedChallengeId) {
-      const challenge = challenges.find((c) => c.id === selectedChallengeId) || null
-      setSelectedChallenge(challenge)
+      const challenge =
+        challenges.find((c) => c.id === selectedChallengeId) || null;
+      setSelectedChallenge(challenge);
 
       // Reset selected checkpoints
-      setSelectedCheckpoints([])
+      setSelectedCheckpoints([]);
 
       // If team is selected, pre-select solved checkpoints
       if (selectedTeamId && challenge?.type === "interactive") {
-        const team = teams.find((t) => t.id === selectedTeamId)
-        const solvedChallenge = team?.solvedChallenges.find((sc) => sc.challengeId === selectedChallengeId)
+        const team = teams.find((t) => t.id === selectedTeamId);
+        const solvedChallenge = team?.solvedChallenges.find(
+          (sc) => sc.challengeId === selectedChallengeId
+        );
         if (solvedChallenge?.solvedCheckpointIds) {
-          setSelectedCheckpoints(solvedChallenge.solvedCheckpointIds)
+          setSelectedCheckpoints(solvedChallenge.solvedCheckpointIds);
         }
       }
     } else {
-      setSelectedChallenge(null)
+      setSelectedChallenge(null);
     }
-  }, [selectedChallengeId, selectedTeamId, challenges, teams])
+  }, [selectedChallengeId, selectedTeamId, challenges, teams]);
 
   const handleMarkSolved = async () => {
     if (!selectedTeamId || !selectedChallengeId) {
@@ -101,15 +129,15 @@ export function AdminPanel({
         title: "Error",
         description: "Please select both a team and a challenge",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    const team = teams.find((t) => t.id === selectedTeamId)
-    const teamName = team?.name || "Unknown team"
-    const challengeName = selectedChallenge?.name || "Unknown challenge"
+    const team = teams.find((t) => t.id === selectedTeamId);
+    const teamName = team?.name || "Unknown team";
+    const challengeName = selectedChallenge?.name || "Unknown challenge";
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
       if (selectedChallenge?.type === "interactive") {
@@ -118,116 +146,120 @@ export function AdminPanel({
             title: "No checkpoints selected",
             description: "Please select at least one checkpoint",
             variant: "destructive",
-          })
-          return
+          });
+          return;
         }
 
-        const success = await onMarkCheckpointsSolved(selectedTeamId, selectedChallengeId, selectedCheckpoints)
+        const success = await onMarkCheckpointsSolved(
+          selectedTeamId,
+          selectedChallengeId,
+          selectedCheckpoints
+        );
 
         if (success) {
           // Calculate points earned
-          let pointsEarned = 0
+          let pointsEarned = 0;
           if (selectedChallenge.checkpoints) {
             pointsEarned = selectedChallenge.checkpoints
               .filter((cp) => selectedCheckpoints.includes(cp.id))
-              .reduce((sum, cp) => sum + cp.points, 0)
+              .reduce((sum, cp) => sum + cp.points, 0);
           }
 
           toast({
             title: "Checkpoints marked as solved",
             description: `${teamName} has earned ${pointsEarned} points for ${challengeName}`,
-          })
+          });
         } else {
           toast({
             title: "Error",
             description: "Failed to mark checkpoints as solved",
             variant: "destructive",
-          })
+          });
         }
       }
     } catch (error) {
-      console.error("Error marking challenge as solved:", error)
+      console.error("Error marking challenge as solved:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const handleAddSubmission = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    if (!submissionTeamId || !submissionChallengeId || !submissionText.trim()) {
+    if (!submissionTeamId || !submissionChallengeId) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
       const success = await onAddSubmission(
         submissionTeamId,
         submissionChallengeId,
-        submissionText,
-        submissionIsCorrect,
-      )
+        submissionIsCorrect
+      );
 
       if (success) {
         // Reset form
-        setSubmissionTeamId("")
-        setSubmissionChallengeId("")
-        setSubmissionText("")
-        setSubmissionIsCorrect(false)
+        setSubmissionTeamId("");
+        setSubmissionChallengeId("");
+        setSubmissionIsCorrect(false);
 
         toast({
           title: "Submission added",
-          description: `Submission recorded for ${teams.find((t) => t.id === submissionTeamId)?.name}`,
-        })
+          description: `Submission recorded for ${
+            teams.find((t) => t.id === submissionTeamId)?.name
+          }`,
+        });
       } else {
         toast({
           title: "Error",
           description: "Failed to add submission",
           variant: "destructive",
-        })
+        });
       }
     } catch (error) {
-      console.error("Error adding submission:", error)
+      console.error("Error adding submission:", error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   // Toggle checkpoint selection
   const toggleCheckpoint = (checkpointId: string) => {
     setSelectedCheckpoints((prev) => {
       if (prev.includes(checkpointId)) {
-        return prev.filter((id) => id !== checkpointId)
+        return prev.filter((id) => id !== checkpointId);
       } else {
-        return [...prev, checkpointId]
+        return [...prev, checkpointId];
       }
-    })
-  }
+    });
+  };
 
   // Calculate total points for selected checkpoints
   const calculateSelectedPoints = () => {
-    if (!selectedChallenge?.checkpoints) return 0
+    if (!selectedChallenge?.checkpoints) return 0;
 
     return selectedChallenge.checkpoints
       .filter((cp) => selectedCheckpoints.includes(cp.id))
-      .reduce((sum, cp) => sum + cp.points, 0)
-  }
+      .reduce((sum, cp) => sum + cp.points, 0);
+  };
 
   return (
     <div className="grid gap-6">
@@ -245,13 +277,17 @@ export function AdminPanel({
             <CardHeader>
               <CardTitle>Mark Interactive Challenge as Solved</CardTitle>
               <CardDescription>
-                Select a team and an interactive challenge to mark checkpoints as solved
+                Select a team and an interactive challenge to mark checkpoints
+                as solved
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="team">Team</Label>
-                <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+                <Select
+                  value={selectedTeamId}
+                  onValueChange={setSelectedTeamId}
+                >
                   <SelectTrigger id="team">
                     <SelectValue placeholder="Select a team" />
                   </SelectTrigger>
@@ -267,7 +303,10 @@ export function AdminPanel({
 
               <div className="space-y-2">
                 <Label htmlFor="challenge">Challenge</Label>
-                <Select value={selectedChallengeId} onValueChange={setSelectedChallengeId}>
+                <Select
+                  value={selectedChallengeId}
+                  onValueChange={setSelectedChallengeId}
+                >
                   <SelectTrigger id="challenge">
                     <SelectValue placeholder="Select a challenge" />
                   </SelectTrigger>
@@ -283,32 +322,51 @@ export function AdminPanel({
                 </Select>
               </div>
 
-              {selectedChallenge?.type === "interactive" && selectedChallenge.checkpoints && (
-                <div className="space-y-2 pt-2 border p-4 rounded-md">
-                  <Label className="mb-2 block">Select completed checkpoints:</Label>
-                  <div className="space-y-2">
-                    {selectedChallenge.checkpoints.map((checkpoint) => (
-                      <div key={checkpoint.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={checkpoint.id}
-                          checked={selectedCheckpoints.includes(checkpoint.id)}
-                          onCheckedChange={() => toggleCheckpoint(checkpoint.id)}
-                        />
-                        <Label htmlFor={checkpoint.id} className="flex-1">
-                          {checkpoint.name}
-                        </Label>
-                        <span className="text-sm font-medium">{checkpoint.points} pts</span>
-                      </div>
-                    ))}
+              {selectedChallenge?.type === "interactive" &&
+                selectedChallenge.checkpoints && (
+                  <div className="space-y-2 pt-2 border p-4 rounded-md">
+                    <Label className="mb-2 block">
+                      Select completed checkpoints:
+                    </Label>
+                    <div className="space-y-2">
+                      {selectedChallenge.checkpoints.map((checkpoint) => (
+                        <div
+                          key={checkpoint.id}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            id={checkpoint.id}
+                            checked={selectedCheckpoints.includes(
+                              checkpoint.id
+                            )}
+                            onCheckedChange={() =>
+                              toggleCheckpoint(checkpoint.id)
+                            }
+                          />
+                          <Label htmlFor={checkpoint.id} className="flex-1">
+                            {checkpoint.name}
+                          </Label>
+                          <span className="text-sm font-medium">
+                            {checkpoint.points} pts
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 text-sm">
+                      <span className="font-medium">
+                        Total points selected:
+                      </span>{" "}
+                      {calculateSelectedPoints()} of{" "}
+                      {calculateTotalChallengePoints(selectedChallenge)}
+                    </div>
                   </div>
-                  <div className="mt-4 text-sm">
-                    <span className="font-medium">Total points selected:</span> {calculateSelectedPoints()} of{" "}
-                    {calculateTotalChallengePoints(selectedChallenge)}
-                  </div>
-                </div>
-              )}
+                )}
 
-              <Button onClick={handleMarkSolved} className="w-full" disabled={isSubmitting}>
+              <Button
+                onClick={handleMarkSolved}
+                className="w-full"
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? "Processing..." : "Mark Checkpoints as Solved"}
               </Button>
             </CardContent>
@@ -319,13 +377,18 @@ export function AdminPanel({
           <Card>
             <CardHeader>
               <CardTitle>Add Challenge Submission</CardTitle>
-              <CardDescription>Record a team's submission for a non-interactive challenge</CardDescription>
+              <CardDescription>
+                Record a team's submission for a non-interactive challenge
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddSubmission} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="submission-team">Team</Label>
-                  <Select value={submissionTeamId} onValueChange={setSubmissionTeamId}>
+                  <Select
+                    value={submissionTeamId}
+                    onValueChange={setSubmissionTeamId}
+                  >
                     <SelectTrigger id="submission-team">
                       <SelectValue placeholder="Select a team" />
                     </SelectTrigger>
@@ -341,7 +404,10 @@ export function AdminPanel({
 
                 <div className="space-y-2">
                   <Label htmlFor="submission-challenge">Challenge</Label>
-                  <Select value={submissionChallengeId} onValueChange={setSubmissionChallengeId}>
+                  <Select
+                    value={submissionChallengeId}
+                    onValueChange={setSubmissionChallengeId}
+                  >
                     <SelectTrigger id="submission-challenge">
                       <SelectValue placeholder="Select a challenge" />
                     </SelectTrigger>
@@ -357,26 +423,24 @@ export function AdminPanel({
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="submission-text">Submission</Label>
-                  <Textarea
-                    id="submission-text"
-                    placeholder="Enter the team's submission (e.g., flag{example})"
-                    value={submissionText}
-                    onChange={(e) => setSubmissionText(e.target.value)}
-                  />
-                </div>
-
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="submission-correct"
                     checked={submissionIsCorrect}
-                    onCheckedChange={(checked) => setSubmissionIsCorrect(checked as boolean)}
+                    onCheckedChange={(checked) =>
+                      setSubmissionIsCorrect(checked as boolean)
+                    }
                   />
-                  <Label htmlFor="submission-correct">This submission is correct</Label>
+                  <Label htmlFor="submission-correct">
+                    This submission is correct
+                  </Label>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
                   {isSubmitting ? "Adding..." : "Add Submission"}
                 </Button>
               </form>
@@ -389,7 +453,12 @@ export function AdminPanel({
         </TabsContent>
 
         <TabsContent value="teams">
-          <TeamManager teams={teams} onAddTeam={onAddTeam} onUpdateTeam={onUpdateTeam} onDeleteTeam={onDeleteTeam} />
+          <TeamManager
+            teams={teams}
+            onAddTeam={onAddTeam}
+            onUpdateTeam={onUpdateTeam}
+            onDeleteTeam={onDeleteTeam}
+          />
         </TabsContent>
 
         <TabsContent value="challenges">
@@ -402,5 +471,5 @@ export function AdminPanel({
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

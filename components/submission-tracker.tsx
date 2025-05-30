@@ -1,50 +1,67 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react"
-import { getSubmissionStats, getTeams, getChallenges } from "@/lib/store"
-import type { TeamSubmissionStats, Team, Challenge } from "@/types/types"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Clock, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { getSubmissionStats, getTeams, getChallenges } from "@/lib/store";
+import type { TeamSubmissionStats, Team, Challenge } from "@/types/types";
 
 export function SubmissionTracker() {
-  const [submissionStats, setSubmissionStats] = useState<TeamSubmissionStats[]>([])
-  const [teams, setTeams] = useState<Team[]>([])
-  const [challenges, setChallenges] = useState<Challenge[]>([])
-  const [selectedTeam, setSelectedTeam] = useState<string>("all")
-  const [selectedChallenge, setSelectedChallenge] = useState<string>("all")
-  const [loading, setLoading] = useState(true)
+  const [submissionStats, setSubmissionStats] = useState<TeamSubmissionStats[]>(
+    []
+  );
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<string>("all");
+  const [selectedChallenge, setSelectedChallenge] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
         const [stats, teamsData, challengesData] = await Promise.all([
           getSubmissionStats(),
           getTeams(),
           getChallenges(),
-        ])
+        ]);
 
-        setSubmissionStats(stats)
-        setTeams(teamsData)
-        setChallenges(challengesData.filter((c) => c.type === "non-interactive"))
+        setSubmissionStats(stats);
+        setTeams(teamsData);
+        setChallenges(
+          challengesData.filter((c) => c.type === "non-interactive")
+        );
       } catch (error) {
-        console.error("Error loading submission data:", error)
+        console.error("Error loading submission data:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    loadData()
-  }, [])
+    loadData();
+  }, []);
 
   const filteredStats = submissionStats.filter((stat) => {
-    if (selectedTeam !== "all" && stat.teamId !== selectedTeam) return false
-    if (selectedChallenge !== "all" && stat.challengeId !== selectedChallenge) return false
-    return true
-  })
+    if (selectedTeam !== "all" && stat.teamId !== selectedTeam) return false;
+    if (selectedChallenge !== "all" && stat.challengeId !== selectedChallenge)
+      return false;
+    return true;
+  });
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -52,8 +69,8 @@ export function SubmissionTracker() {
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(date)
-  }
+    }).format(date);
+  };
 
   if (loading) {
     return (
@@ -62,7 +79,7 @@ export function SubmissionTracker() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -71,8 +88,8 @@ export function SubmissionTracker() {
         <CardHeader>
           <CardTitle>Submission Tracker</CardTitle>
           <CardDescription>
-            Track team submissions for non-interactive challenges. Penalties are only applied if the team eventually
-            solves the challenge.
+            Track team submissions for non-interactive challenges. Penalties are
+            only applied if the team eventually solves the challenge.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -96,7 +113,10 @@ export function SubmissionTracker() {
 
             <div className="space-y-2">
               <Label htmlFor="challenge-filter">Filter by Challenge</Label>
-              <Select value={selectedChallenge} onValueChange={setSelectedChallenge}>
+              <Select
+                value={selectedChallenge}
+                onValueChange={setSelectedChallenge}
+              >
                 <SelectTrigger id="challenge-filter" className="w-48">
                   <SelectValue placeholder="All challenges" />
                 </SelectTrigger>
@@ -119,11 +139,16 @@ export function SubmissionTracker() {
               </div>
             ) : (
               filteredStats.map((stat) => (
-                <Card key={`${stat.teamId}-${stat.challengeId}`} className="border-l-4 border-l-primary">
+                <Card
+                  key={`${stat.teamId}-${stat.challengeId}`}
+                  className="border-l-4 border-l-primary"
+                >
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle className="text-lg">{stat.teamName}</CardTitle>
+                        <CardTitle className="text-lg">
+                          {stat.teamName}
+                        </CardTitle>
                         <CardDescription>{stat.challengeName}</CardDescription>
                       </div>
                       <div className="flex items-center gap-2">
@@ -140,7 +165,8 @@ export function SubmissionTracker() {
                         )}
                         {stat.penaltyPoints > 0 && (
                           <Badge variant="destructive">
-                            <AlertTriangle className="w-3 h-3 mr-1" />-{stat.penaltyPoints} pts
+                            <AlertTriangle className="w-3 h-3 mr-1" />-
+                            {stat.penaltyPoints} pts
                           </Badge>
                         )}
                       </div>
@@ -149,22 +175,30 @@ export function SubmissionTracker() {
                   <CardContent>
                     <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
                       <div>
-                        <span className="font-medium">Total Submissions:</span> {stat.totalSubmissions}
+                        <span className="font-medium">Total Submissions:</span>{" "}
+                        {stat.totalSubmissions}
                       </div>
                       <div>
-                        <span className="font-medium">Wrong Submissions:</span> {stat.wrongSubmissions}
+                        <span className="font-medium">Wrong Submissions:</span>{" "}
+                        {stat.wrongSubmissions}
                       </div>
                       <div>
                         <span className="font-medium">Success Rate:</span>{" "}
                         {stat.totalSubmissions > 0
-                          ? Math.round(((stat.totalSubmissions - stat.wrongSubmissions) / stat.totalSubmissions) * 100)
+                          ? Math.round(
+                              ((stat.totalSubmissions - stat.wrongSubmissions) /
+                                stat.totalSubmissions) *
+                                100
+                            )
                           : 0}
                         %
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <h4 className="font-medium text-sm">Submission History:</h4>
+                      <h4 className="font-medium text-sm">
+                        Submission History:
+                      </h4>
                       <div className="max-h-32 overflow-y-auto space-y-1">
                         {stat.submissions.map((submission) => (
                           <div
@@ -181,7 +215,7 @@ export function SubmissionTracker() {
                               ) : (
                                 <XCircle className="w-3 h-3 text-red-600" />
                               )}
-                              <span className="font-mono">{submission.submissionText}</span>
+                              <span className="font-mono">test</span>
                             </div>
                             <div className="flex items-center gap-1 text-muted-foreground">
                               <Clock className="w-3 h-3" />
@@ -199,5 +233,5 @@ export function SubmissionTracker() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

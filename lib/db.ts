@@ -1,42 +1,45 @@
-import { Pool, type PoolClient } from "pg"
-import { join } from "path"
-import fs from "fs"
+import { Pool, type PoolClient } from "pg";
+import { join } from "path";
+import fs from "fs";
 
 // Determine if we're in a Vercel environment
-const isVercel = process.env.VERCEL === "1"
+const isVercel = process.env.VERCEL === "1";
 
 // Ensure the data directory exists (for local development)
 if (!isVercel) {
-  const dataDir = join(process.cwd(), "data")
+  const dataDir = join(process.cwd(), "data");
   if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true })
+    fs.mkdirSync(dataDir, { recursive: true });
   }
 }
 
 // Create a connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
-})
+});
 
 // Test the connection
 pool.on("connect", () => {
-  console.log("Connected to PostgreSQL database")
-})
+  console.log("Connected to PostgreSQL database");
+});
 
 pool.on("error", (err) => {
-  console.error("Unexpected error on idle client", err)
-})
+  console.error("Unexpected error on idle client", err);
+});
 
 // Initialize the database schema if it doesn't exist
 export async function initializeDatabase() {
-  const client = await pool.connect()
+  const client = await pool.connect();
 
   try {
-    console.log("Creating database schema...")
+    console.log("Creating database schema...");
 
     // Create teams table
     await client.query(`
@@ -45,7 +48,7 @@ export async function initializeDatabase() {
         name TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `)
+    `);
 
     // Create challenges table
     await client.query(`
@@ -58,7 +61,7 @@ export async function initializeDatabase() {
         penalty_points INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `)
+    `);
 
     // Create checkpoints table
     await client.query(`
@@ -70,7 +73,7 @@ export async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (challenge_id) REFERENCES challenges(id) ON DELETE CASCADE
       )
-    `)
+    `);
 
     // Create solved_challenges table
     await client.query(`
@@ -83,7 +86,7 @@ export async function initializeDatabase() {
         FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
         FOREIGN KEY (challenge_id) REFERENCES challenges(id) ON DELETE CASCADE
       )
-    `)
+    `);
 
     // Create solved_checkpoints table
     await client.query(`
@@ -96,7 +99,7 @@ export async function initializeDatabase() {
         FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
         FOREIGN KEY (checkpoint_id) REFERENCES checkpoints(id) ON DELETE CASCADE
       )
-    `)
+    `);
 
     // Create submissions table
     await client.query(`
@@ -104,13 +107,12 @@ export async function initializeDatabase() {
         id SERIAL PRIMARY KEY,
         team_id TEXT NOT NULL,
         challenge_id TEXT NOT NULL,
-        submission_text TEXT NOT NULL,
         is_correct BOOLEAN NOT NULL DEFAULT FALSE,
         submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
         FOREIGN KEY (challenge_id) REFERENCES challenges(id) ON DELETE CASCADE
       )
-    `)
+    `);
 
     // Create users table
     await client.query(`
@@ -122,7 +124,7 @@ export async function initializeDatabase() {
         role TEXT DEFAULT 'user',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `)
+    `);
 
     // Create sessions table
     await client.query(`
@@ -133,36 +135,38 @@ export async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
-    `)
+    `);
 
     // Add penalty_points column if it doesn't exist (for existing databases)
     try {
       await client.query(`
         ALTER TABLE challenges 
         ADD COLUMN IF NOT EXISTS penalty_points INTEGER DEFAULT 0
-      `)
+      `);
     } catch (error) {
       // Column might already exist, ignore error
-      console.log("penalty_points column already exists or error adding it")
+      console.log("penalty_points column already exists or error adding it");
     }
 
     // Check if we need to seed the database with initial data
-    const teamsResult = await client.query("SELECT COUNT(*) as count FROM teams")
-    const teamsCount = Number.parseInt(teamsResult.rows[0].count)
-    console.log(`Found ${teamsCount} existing teams`)
+    const teamsResult = await client.query(
+      "SELECT COUNT(*) as count FROM teams"
+    );
+    const teamsCount = Number.parseInt(teamsResult.rows[0].count);
+    console.log(`Found ${teamsCount} existing teams`);
 
     if (teamsCount === 0) {
-      console.log("Seeding database with initial data...")
-      await seedDatabase(client)
-      console.log("Database seeding complete")
+      console.log("Seeding database with initial data...");
+      await seedDatabase(client);
+      console.log("Database seeding complete");
     } else {
-      console.log("Database already contains data, skipping seed")
+      console.log("Database already contains data, skipping seed");
     }
   } catch (error) {
-    console.error("Error initializing database:", error)
-    throw error
+    console.error("Error initializing database:", error);
+    throw error;
   } finally {
-    client.release()
+    client.release();
   }
 }
 
@@ -170,7 +174,7 @@ export async function initializeDatabase() {
 async function seedDatabase(client: PoolClient) {
   try {
     // Begin transaction
-    await client.query("BEGIN")
+    await client.query("BEGIN");
 
     // Insert initial challenges
     const challenges = [
@@ -214,7 +218,7 @@ async function seedDatabase(client: PoolClient) {
         points: 1200,
         penalty_points: 0, // Interactive challenges don't have penalties
       },
-    ]
+    ];
 
     // Insert challenges
     for (const challenge of challenges) {
@@ -227,8 +231,8 @@ async function seedDatabase(client: PoolClient) {
           challenge.type,
           challenge.points,
           challenge.penalty_points,
-        ],
-      )
+        ]
+      );
 
       // Add checkpoints for interactive challenges
       if (challenge.id === "c3") {
@@ -236,17 +240,19 @@ async function seedDatabase(client: PoolClient) {
           { id: "c3-1", name: "Identify the file format", points: 100 },
           { id: "c3-2", name: "Decompile the binary", points: 150 },
           { id: "c3-3", name: "Find the main function", points: 200 },
-          { id: "c3-4", name: "Identify the encryption algorithm", points: 250 },
+          {
+            id: "c3-4",
+            name: "Identify the encryption algorithm",
+            points: 250,
+          },
           { id: "c3-5", name: "Extract the hidden message", points: 300 },
-        ]
+        ];
 
         for (const checkpoint of checkpoints) {
-          await client.query("INSERT INTO checkpoints (id, challenge_id, name, points) VALUES ($1, $2, $3, $4)", [
-            checkpoint.id,
-            challenge.id,
-            checkpoint.name,
-            checkpoint.points,
-          ])
+          await client.query(
+            "INSERT INTO checkpoints (id, challenge_id, name, points) VALUES ($1, $2, $3, $4)",
+            [checkpoint.id, challenge.id, checkpoint.name, checkpoint.points]
+          );
         }
       } else if (challenge.id === "c5") {
         const checkpoints = [
@@ -255,15 +261,13 @@ async function seedDatabase(client: PoolClient) {
           { id: "c5-3", name: "Bypass ASLR", points: 250 },
           { id: "c5-4", name: "Achieve code execution", points: 300 },
           { id: "c5-5", name: "Escalate privileges", points: 300 },
-        ]
+        ];
 
         for (const checkpoint of checkpoints) {
-          await client.query("INSERT INTO checkpoints (id, challenge_id, name, points) VALUES ($1, $2, $3, $4)", [
-            checkpoint.id,
-            challenge.id,
-            checkpoint.name,
-            checkpoint.points,
-          ])
+          await client.query(
+            "INSERT INTO checkpoints (id, challenge_id, name, points) VALUES ($1, $2, $3, $4)",
+            [checkpoint.id, challenge.id, checkpoint.name, checkpoint.points]
+          );
         }
       }
     }
@@ -275,10 +279,13 @@ async function seedDatabase(client: PoolClient) {
       { id: "3", name: "Team Phoenix" },
       { id: "4", name: "Team Nexus" },
       { id: "5", name: "Team Quantum" },
-    ]
+    ];
 
     for (const team of teams) {
-      await client.query("INSERT INTO teams (id, name) VALUES ($1, $2)", [team.id, team.name])
+      await client.query("INSERT INTO teams (id, name) VALUES ($1, $2)", [
+        team.id,
+        team.name,
+      ]);
     }
 
     // Insert initial solved challenges
@@ -293,13 +300,13 @@ async function seedDatabase(client: PoolClient) {
       { team_id: "4", challenge_id: "c2" },
       { team_id: "4", challenge_id: "c5" },
       { team_id: "5", challenge_id: "c3" },
-    ]
+    ];
 
     for (const solvedChallenge of solvedChallenges) {
-      await client.query("INSERT INTO solved_challenges (team_id, challenge_id) VALUES ($1, $2)", [
-        solvedChallenge.team_id,
-        solvedChallenge.challenge_id,
-      ])
+      await client.query(
+        "INSERT INTO solved_challenges (team_id, challenge_id) VALUES ($1, $2)",
+        [solvedChallenge.team_id, solvedChallenge.challenge_id]
+      );
     }
 
     // Insert initial solved checkpoints
@@ -316,73 +323,97 @@ async function seedDatabase(client: PoolClient) {
       { team_id: "5", checkpoint_id: "c3-3" },
       { team_id: "5", checkpoint_id: "c3-4" },
       { team_id: "5", checkpoint_id: "c3-5" },
-    ]
+    ];
 
     for (const solvedCheckpoint of solvedCheckpoints) {
-      await client.query("INSERT INTO solved_checkpoints (team_id, checkpoint_id) VALUES ($1, $2)", [
-        solvedCheckpoint.team_id,
-        solvedCheckpoint.checkpoint_id,
-      ])
+      await client.query(
+        "INSERT INTO solved_checkpoints (team_id, checkpoint_id) VALUES ($1, $2)",
+        [solvedCheckpoint.team_id, solvedCheckpoint.checkpoint_id]
+      );
     }
 
     // Insert some sample submissions
     const submissions = [
-      { team_id: "1", challenge_id: "c1", submission_text: "flag{wrong_answer}", is_correct: false },
-      { team_id: "1", challenge_id: "c1", submission_text: "flag{another_wrong}", is_correct: false },
-      { team_id: "1", challenge_id: "c1", submission_text: "flag{correct_answer}", is_correct: true },
-      { team_id: "2", challenge_id: "c1", submission_text: "flag{first_try}", is_correct: true },
-      { team_id: "3", challenge_id: "c2", submission_text: "flag{wrong}", is_correct: false },
-      { team_id: "3", challenge_id: "c2", submission_text: "flag{still_wrong}", is_correct: false },
-    ]
+      {
+        team_id: "1",
+        challenge_id: "c1",
+        is_correct: false,
+      },
+      {
+        team_id: "1",
+        challenge_id: "c1",
+        is_correct: false,
+      },
+      {
+        team_id: "1",
+        challenge_id: "c1",
+        is_correct: true,
+      },
+      {
+        team_id: "2",
+        challenge_id: "c1",
+        is_correct: true,
+      },
+      {
+        team_id: "3",
+        challenge_id: "c2",
+        is_correct: false,
+      },
+      {
+        team_id: "3",
+        challenge_id: "c2",
+        is_correct: false,
+      },
+    ];
 
     for (const submission of submissions) {
       await client.query(
-        "INSERT INTO submissions (team_id, challenge_id, submission_text, is_correct) VALUES ($1, $2, $3, $4)",
-        [submission.team_id, submission.challenge_id, submission.submission_text, submission.is_correct],
-      )
+        "INSERT INTO submissions (team_id, challenge_id, is_correct) VALUES ($1, $2, $3)",
+        [submission.team_id, submission.challenge_id, submission.is_correct]
+      );
     }
 
     // Insert default admin user
-    const bcrypt = require("bcrypt")
-    const adminPasswordHash = await bcrypt.hash("admin123", 10)
+    const bcrypt = require("bcrypt");
+    const adminPasswordHash = await bcrypt.hash("admin123", 10);
 
     await client.query(
       "INSERT INTO users (id, username, email, password_hash, role) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (username) DO NOTHING",
-      ["admin", "admin", "admin@example.com", adminPasswordHash, "admin"],
-    )
+      ["admin", "admin", "admin@example.com", adminPasswordHash, "admin"]
+    );
 
     // Commit transaction
-    await client.query("COMMIT")
+    await client.query("COMMIT");
   } catch (error) {
     // Rollback on error
-    await client.query("ROLLBACK")
-    throw error
+    await client.query("ROLLBACK");
+    throw error;
   }
 }
 
 // Export the pool for use in other modules
-export { pool }
+export { pool };
 
 // Export a function to ensure the database is initialized
 export async function ensureDatabaseInitialized() {
   try {
-    const client = await pool.connect()
+    const client = await pool.connect();
     try {
       // Try to query the database
-      const result = await client.query("SELECT COUNT(*) as count FROM teams")
-      return Number.parseInt(result.rows[0].count) > 0
+      const result = await client.query("SELECT COUNT(*) as count FROM teams");
+      return Number.parseInt(result.rows[0].count) > 0;
     } finally {
-      client.release()
+      client.release();
     }
   } catch (error) {
-    console.error("Database error, attempting to reinitialize:", error)
+    console.error("Database error, attempting to reinitialize:", error);
     // If there was an error, try to initialize the database
-    await initializeDatabase()
-    return false
+    await initializeDatabase();
+    return false;
   }
 }
 
 // Helper function to get a client from the pool
 export async function getClient() {
-  return await pool.connect()
+  return await pool.connect();
 }
