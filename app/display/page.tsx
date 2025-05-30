@@ -1,69 +1,78 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { ArrowLeft, Medal } from "lucide-react"
-import { getLeaderboardData, getChallengeStats } from "@/lib/store"
-import type { LeaderboardEntry, ChallengeStats } from "@/types/types"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ArrowLeft, Medal } from "lucide-react";
+import { getLeaderboardData, getChallengeStats } from "@/lib/store";
+import type { LeaderboardEntry, ChallengeStats } from "@/types/types";
 
 export default function DisplayMode() {
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([])
-  const [challengeStats, setChallengeStats] = useState<ChallengeStats[]>([])
-  const [showTeamLeaderboard, setShowTeamLeaderboard] = useState(true)
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [loading, setLoading] = useState(true)
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>(
+    []
+  );
+  const [challengeStats, setChallengeStats] = useState<ChallengeStats[]>([]);
+  const [showTeamLeaderboard, setShowTeamLeaderboard] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [loading, setLoading] = useState(true);
 
   // Load data on component mount and every 30 seconds
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true)
+      setLoading(true);
       try {
-        const [leaderboardData, challengeStats] = await Promise.all([getLeaderboardData(), getChallengeStats()])
+        const [leaderboardData, challengeStats] = await Promise.all([
+          getLeaderboardData(),
+          getChallengeStats(),
+        ]);
 
-        setLeaderboardData(leaderboardData)
-        setChallengeStats(challengeStats)
-        setCurrentTime(new Date())
+        setLeaderboardData(leaderboardData);
+        setChallengeStats(challengeStats);
+        setCurrentTime(new Date());
       } catch (error) {
-        console.error("Error loading data:", error)
+        console.error("Error loading data:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    loadData() // Initial load
+    loadData(); // Initial load
 
     // Refresh data every 30 seconds
-    const dataInterval = setInterval(loadData, 30000)
-    return () => clearInterval(dataInterval)
-  }, [])
+    const dataInterval = setInterval(loadData, 30000);
+    return () => clearInterval(dataInterval);
+  }, []);
 
   // Toggle between leaderboards every 20 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setShowTeamLeaderboard((prev) => !prev)
-    }, 20000)
+      setShowTeamLeaderboard((prev) => !prev);
+    }, 20000);
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
   // Format time as HH:MM:SS
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  }
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
 
   return (
     <div className="bg-white text-gray-900 min-h-screen flex flex-col">
       {/* Header */}
-      <header className="p-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+      <header className="p-6 bg-gradient-to-r from-red-500 to-black text-white">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Medal className="h-10 w-10" />
-            <h1 className="text-4xl font-bold tracking-tight">CTF Leaderboard</h1>
+            <h1 className="text-4xl font-bold tracking-tight">
+              CSRP'25 Leaderboard
+            </h1>
           </div>
           <div className="flex flex-col items-end">
             <div className="text-3xl font-mono">{formatTime(currentTime)}</div>
-            <div className="text-sm opacity-80">Last updated: {currentTime.toLocaleTimeString()}</div>
+            <div className="text-sm opacity-80">
+              Last updated: {currentTime.toLocaleTimeString()}
+            </div>
           </div>
         </div>
       </header>
@@ -94,15 +103,8 @@ export default function DisplayMode() {
           )}
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="p-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-center">
-        <div className="text-sm opacity-80">
-          Press <kbd className="px-2 py-1 bg-white/30 rounded">ESC</kbd> to exit display mode
-        </div>
-      </footer>
     </div>
-  )
+  );
 }
 
 function DisplayTeamLeaderboard({ data }: { data: LeaderboardEntry[] }) {
@@ -133,10 +135,10 @@ function DisplayTeamLeaderboard({ data }: { data: LeaderboardEntry[] }) {
               index === 0
                 ? "bg-yellow-100 border border-yellow-300"
                 : index === 1
-                  ? "bg-gray-100 border border-gray-300"
-                  : index === 2
-                    ? "bg-amber-100 border border-amber-300"
-                    : "bg-gray-50 border border-gray-200"
+                ? "bg-gray-100 border border-gray-300"
+                : index === 2
+                ? "bg-amber-100 border border-amber-300"
+                : "bg-gray-50 border border-gray-200"
             }`}
           >
             <div className="flex items-center gap-6">
@@ -155,24 +157,34 @@ function DisplayTeamLeaderboard({ data }: { data: LeaderboardEntry[] }) {
             </div>
             <div className="flex items-center gap-12">
               <div className="text-right min-w-24">
-                <div className="font-medium text-xl">{entry.challengesSolved}</div>
+                <div className="font-medium text-xl">
+                  {entry.challengesSolved}
+                </div>
               </div>
               <div className="text-right min-w-32">
-                <div className="font-bold text-2xl">{entry.score.toLocaleString()}</div>
+                <div className="font-bold text-2xl">
+                  {entry.score.toLocaleString()}
+                </div>
               </div>
             </div>
           </div>
         ))}
 
-        {data.length === 0 && <div className="text-center py-12 text-gray-400 text-2xl">No scores yet</div>}
+        {data.length === 0 && (
+          <div className="text-center py-12 text-gray-400 text-2xl">
+            No scores yet
+          </div>
+        )}
       </div>
     </div>
-  )
+  );
 }
 
 function DisplayChallengeLeaderboard({ data }: { data: ChallengeStats[] }) {
   // Sort challenges by completion percentage (highest first)
-  const sortedData = [...data].sort((a, b) => b.completionPercentage - a.completionPercentage)
+  const sortedData = [...data].sort(
+    (a, b) => b.completionPercentage - a.completionPercentage
+  );
 
   return (
     <div className="space-y-4">
@@ -202,16 +214,19 @@ function DisplayChallengeLeaderboard({ data }: { data: ChallengeStats[] }) {
                   challenge.completionPercentage >= 75
                     ? "bg-green-500"
                     : challenge.completionPercentage >= 50
-                      ? "bg-blue-500"
-                      : challenge.completionPercentage >= 25
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
+                    ? "bg-blue-500"
+                    : challenge.completionPercentage >= 25
+                    ? "bg-yellow-500"
+                    : "bg-red-500"
                 }`}
               />
               <div>
                 <div className="font-medium text-2xl">{challenge.name}</div>
                 <div className="text-sm text-gray-500">
-                  {challenge.type === "interactive" ? "Interactive" : "Non-Interactive"} • {challenge.points} points
+                  {challenge.type === "interactive"
+                    ? "Interactive"
+                    : "Non-Interactive"}{" "}
+                  • {challenge.points} points
                 </div>
               </div>
             </div>
@@ -229,23 +244,29 @@ function DisplayChallengeLeaderboard({ data }: { data: ChallengeStats[] }) {
                         challenge.completionPercentage >= 75
                           ? "bg-green-500"
                           : challenge.completionPercentage >= 50
-                            ? "bg-blue-500"
-                            : challenge.completionPercentage >= 25
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
+                          ? "bg-blue-500"
+                          : challenge.completionPercentage >= 25
+                          ? "bg-yellow-500"
+                          : "bg-red-500"
                       }`}
                       style={{ width: `${challenge.completionPercentage}%` }}
                     />
                   </div>
-                  <span className="text-xl font-medium">{challenge.completionPercentage}%</span>
+                  <span className="text-xl font-medium">
+                    {challenge.completionPercentage}%
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         ))}
 
-        {data.length === 0 && <div className="text-center py-12 text-gray-400 text-2xl">No challenges available</div>}
+        {data.length === 0 && (
+          <div className="text-center py-12 text-gray-400 text-2xl">
+            No challenges available
+          </div>
+        )}
       </div>
     </div>
-  )
+  );
 }
