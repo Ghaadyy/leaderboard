@@ -162,6 +162,83 @@ export async function addTeam(formData: FormData) {
   }
 }
 
+// Update a team
+export async function updateTeam(teamId: string, formData: FormData) {
+  const client = await pool.connect()
+
+  try {
+    // Ensure database is initialized
+    await ensureDatabaseInitialized()
+
+    const name = formData.get("name") as string
+    const validation = teamSchema.safeParse({ name })
+
+    if (!validation.success) {
+      return { success: false, error: validation.error.errors[0].message }
+    }
+
+    const result = await client.query("UPDATE teams SET name = $1 WHERE id = $2", [name, teamId])
+
+    if (result.rowCount === 0) {
+      return { success: false, error: "Team not found" }
+    }
+
+    revalidatePath("/")
+    revalidatePath("/admin")
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error updating team:", error)
+    return { success: false, error: "Failed to update team" }
+  } finally {
+    client.release()
+  }
+}
+
+// Delete a team
+export async function deleteTeam(teamId: string) {
+  const client = await pool.connect()
+
+  try {
+    // Ensure database is initialized
+    await ensureDatabaseInitialized()
+
+    // Begin transaction
+    await client.query("BEGIN")
+
+    try {
+      // Delete related records first (due to foreign key constraints)
+      await client.query("DELETE FROM solved_checkpoints WHERE team_id = $1", [teamId])
+      await client.query("DELETE FROM solved_challenges WHERE team_id = $1", [teamId])
+      await client.query("DELETE FROM submissions WHERE team_id = $1", [teamId])
+
+      // Delete the team
+      const result = await client.query("DELETE FROM teams WHERE id = $1", [teamId])
+
+      if (result.rowCount === 0) {
+        throw new Error("Team not found")
+      }
+
+      // Commit transaction
+      await client.query("COMMIT")
+    } catch (error) {
+      // Rollback on error
+      await client.query("ROLLBACK")
+      throw error
+    }
+
+    revalidatePath("/")
+    revalidatePath("/admin")
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error deleting team:", error)
+    return { success: false, error: error instanceof Error ? error.message : "Failed to delete team" }
+  } finally {
+    client.release()
+  }
+}
+
 // Add a new challenge
 export async function addChallenge(formData: FormData) {
   const client = await pool.connect()
@@ -237,6 +314,139 @@ export async function addChallenge(formData: FormData) {
   } catch (error) {
     console.error("Error adding challenge:", error)
     return { success: false, error: error instanceof Error ? error.message : "Failed to add challenge" }
+  } finally {
+    client.release()
+  }
+}
+
+// Update a challenge
+export async function updateChallenge(challengeId: string, formData: FormData) {
+  const client = await pool.connect()
+
+  try {
+    // Ensure database is initialized
+    await ensureDatabaseInitialized()
+
+    const name = formData.get("name") as string
+    const description = formData.get("description") as string
+    const type = formData.get("type") as "interactive" | "non-interactive"
+    const points = Number.parseInt(formData.get("points") as string)
+    const penaltyPoints = Number.parseInt(formData.get("penaltyPoints") as string) || 0
+
+    const validation = challengeSchema.safeParse({ name, description, type, points, penaltyPoints })
+
+    if (!validation.success) {
+      return { success: false, error: validation.error.errors[0].message }
+    }
+
+    // Begin transaction
+    await client.query("BEGIN")
+
+    try {
+      // Update challenge
+      const result = await client.query(
+        "UPDATE challenges SET name = $1, description = $2, type = $3, points = $4, penalty_points = $5 WHERE id = $6",
+        [name, description, type, points, penaltyPoints, challengeId],
+      )
+
+      if (result.rowCount === 0) {
+        throw new Error("Challenge not found")
+      }
+
+      // Delete existing checkpoints
+      await client.query("DELETE FROM checkpoints WHERE challenge_id = $1", [challengeId])
+
+      // If interactive, add new checkpoints
+      if (type === "interactive") {
+        const checkpointsCount = Number.parseInt(formData.get("checkpointsCount") as string)
+
+        for (let i = 0; i < checkpointsCount; i++) {
+          const checkpointName = formData.get(`checkpoint_${i}_name`) as string
+          const checkpointPoints = Number.parseInt(formData.get(`checkpoint_${i}_points`) as string)
+
+          const checkpointValidation = checkpointSchema.safeParse({
+            name: checkpointName,
+            points: checkpointPoints,
+          })
+
+          if (!checkpointValidation.success) {
+            throw new Error(checkpointValidation.error.errors[0].message)
+          }
+
+          const checkpointId = `${challengeId}-${i + 1}`
+
+          await client.query("INSERT INTO checkpoints (id, challenge_id, name, points) VALUES ($1, $2, $3, $4)", [
+            checkpointId,
+            challengeId,
+            checkpointName,
+            checkpointPoints,
+          ])
+        }
+      }
+
+      // Commit transaction
+      await client.query("COMMIT")
+    } catch (error) {
+      // Rollback on error
+      await client.query("ROLLBACK")
+      throw error
+    }
+
+    revalidatePath("/")
+    revalidatePath("/admin")
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error updating challenge:", error)
+    return { success: false, error: error instanceof Error ? error.message : "Failed to update challenge" }
+  } finally {
+    client.release()
+  }
+}
+
+// Delete a challenge
+export async function deleteChallenge(challengeId: string) {
+  const client = await pool.connect()
+
+  try {
+    // Ensure database is initialized
+    await ensureDatabaseInitialized()
+
+    // Begin transaction
+    await client.query("BEGIN")
+
+    try {
+      // Delete related records first (due to foreign key constraints)
+      await client.query(
+        "DELETE FROM solved_checkpoints WHERE checkpoint_id IN (SELECT id FROM checkpoints WHERE challenge_id = $1)",
+        [challengeId],
+      )
+      await client.query("DELETE FROM checkpoints WHERE challenge_id = $1", [challengeId])
+      await client.query("DELETE FROM solved_challenges WHERE challenge_id = $1", [challengeId])
+      await client.query("DELETE FROM submissions WHERE challenge_id = $1", [challengeId])
+
+      // Delete the challenge
+      const result = await client.query("DELETE FROM challenges WHERE id = $1", [challengeId])
+
+      if (result.rowCount === 0) {
+        throw new Error("Challenge not found")
+      }
+
+      // Commit transaction
+      await client.query("COMMIT")
+    } catch (error) {
+      // Rollback on error
+      await client.query("ROLLBACK")
+      throw error
+    }
+
+    revalidatePath("/")
+    revalidatePath("/admin")
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error deleting challenge:", error)
+    return { success: false, error: error instanceof Error ? error.message : "Failed to delete challenge" }
   } finally {
     client.release()
   }

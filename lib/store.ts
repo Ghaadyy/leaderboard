@@ -14,100 +14,15 @@ import {
   getChallengeStats as getChallengeStatsAction,
   getSubmissionStats as getSubmissionStatsAction,
   addTeam as addTeamAction,
+  updateTeam as updateTeamAction,
+  deleteTeam as deleteTeamAction,
   addChallenge as addChallengeAction,
+  updateChallenge as updateChallengeAction,
+  deleteChallenge as deleteChallengeAction,
   addSubmission as addSubmissionAction,
   markNonInteractiveSolved as markNonInteractiveSolvedAction,
   markCheckpointsSolved as markCheckpointsSolvedAction,
 } from "@/app/api/actions"
-
-// Initial challenges
-const initialChallenges: Challenge[] = [
-  {
-    id: "c1",
-    name: "Web Exploitation",
-    description: "Find and exploit a web vulnerability",
-    type: "non-interactive",
-    points: 500,
-  },
-  {
-    id: "c2",
-    name: "Cryptography",
-    description: "Decrypt the hidden message",
-    type: "non-interactive",
-    points: 750,
-  },
-  {
-    id: "c3",
-    name: "Reverse Engineering",
-    description: "Analyze and understand the binary",
-    type: "interactive",
-    points: 1000, // Total possible points
-    checkpoints: [
-      { id: "c3-1", name: "Identify the file format", points: 100 },
-      { id: "c3-2", name: "Decompile the binary", points: 150 },
-      { id: "c3-3", name: "Find the main function", points: 200 },
-      { id: "c3-4", name: "Identify the encryption algorithm", points: 250 },
-      { id: "c3-5", name: "Extract the hidden message", points: 300 },
-    ],
-  },
-  {
-    id: "c4",
-    name: "Forensics",
-    description: "Recover deleted data",
-    type: "non-interactive",
-    points: 800,
-  },
-  {
-    id: "c5",
-    name: "Binary Exploitation",
-    description: "Exploit a buffer overflow",
-    type: "interactive",
-    points: 1200, // Total possible points
-    checkpoints: [
-      { id: "c5-1", name: "Identify the vulnerability", points: 150 },
-      { id: "c5-2", name: "Craft the payload", points: 200 },
-      { id: "c5-3", name: "Bypass ASLR", points: 250 },
-      { id: "c5-4", name: "Achieve code execution", points: 300 },
-      { id: "c5-5", name: "Escalate privileges", points: 300 },
-    ],
-  },
-]
-
-// Initial teams
-const initialTeams: Team[] = [
-  {
-    id: "1",
-    name: "Team Alpha",
-    solvedChallenges: [
-      { challengeId: "c1" },
-      { challengeId: "c2" },
-      { challengeId: "c3", solvedCheckpointIds: ["c3-1", "c3-2", "c3-3"] },
-    ],
-  },
-  {
-    id: "2",
-    name: "Team Omega",
-    solvedChallenges: [{ challengeId: "c1" }, { challengeId: "c2" }],
-  },
-  {
-    id: "3",
-    name: "Team Phoenix",
-    solvedChallenges: [{ challengeId: "c1" }, { challengeId: "c4" }],
-  },
-  {
-    id: "4",
-    name: "Team Nexus",
-    solvedChallenges: [
-      { challengeId: "c2" },
-      { challengeId: "c5", solvedCheckpointIds: ["c5-1", "c5-2", "c5-3", "c5-4"] },
-    ],
-  },
-  {
-    id: "5",
-    name: "Team Quantum",
-    solvedChallenges: [{ challengeId: "c3", solvedCheckpointIds: ["c3-1", "c3-2", "c3-3", "c3-4", "c3-5"] }],
-  },
-]
 
 // Cache for client-side data
 let teamsCache: Team[] | null = null
@@ -115,6 +30,15 @@ let challengesCache: Challenge[] | null = null
 let leaderboardDataCache: LeaderboardEntry[] | null = null
 let challengeStatsCache: ChallengeStats[] | null = null
 let submissionStatsCache: TeamSubmissionStats[] | null = null
+
+// Clear all caches
+const clearCaches = () => {
+  teamsCache = null
+  challengesCache = null
+  leaderboardDataCache = null
+  challengeStatsCache = null
+  submissionStatsCache = null
+}
 
 // Get teams from API
 export const getTeams = async (): Promise<Team[]> => {
@@ -195,9 +119,7 @@ export const addTeam = async (name: string): Promise<Team | null> => {
     const result = await addTeamAction(formData)
 
     if (result.success) {
-      // Clear cache to force refresh
-      teamsCache = null
-      leaderboardDataCache = null
+      clearCaches()
       return result.team
     }
 
@@ -205,6 +127,43 @@ export const addTeam = async (name: string): Promise<Team | null> => {
   } catch (error) {
     console.error("Error adding team:", error)
     return null
+  }
+}
+
+// Update a team
+export const updateTeam = async (teamId: string, name: string): Promise<boolean> => {
+  try {
+    const formData = new FormData()
+    formData.append("name", name)
+
+    const result = await updateTeamAction(teamId, formData)
+
+    if (result.success) {
+      clearCaches()
+      return true
+    }
+
+    throw new Error(result.error || "Failed to update team")
+  } catch (error) {
+    console.error("Error updating team:", error)
+    return false
+  }
+}
+
+// Delete a team
+export const deleteTeam = async (teamId: string): Promise<boolean> => {
+  try {
+    const result = await deleteTeamAction(teamId)
+
+    if (result.success) {
+      clearCaches()
+      return true
+    }
+
+    throw new Error(result.error || "Failed to delete team")
+  } catch (error) {
+    console.error("Error deleting team:", error)
+    return false
   }
 }
 
@@ -237,15 +196,71 @@ export const addChallenge = async (
     const result = await addChallengeAction(formData)
 
     if (result.success) {
-      // Clear cache to force refresh
-      challengesCache = null
-      challengeStatsCache = null
+      clearCaches()
       return true
     }
 
     throw new Error(result.error || "Failed to add challenge")
   } catch (error) {
     console.error("Error adding challenge:", error)
+    return false
+  }
+}
+
+// Update a challenge
+export const updateChallenge = async (
+  challengeId: string,
+  name: string,
+  description: string,
+  type: "interactive" | "non-interactive",
+  points: number,
+  penaltyPoints: number,
+  checkpoints?: { name: string; points: number }[],
+): Promise<boolean> => {
+  try {
+    const formData = new FormData()
+    formData.append("name", name)
+    formData.append("description", description)
+    formData.append("type", type)
+    formData.append("points", points.toString())
+    formData.append("penaltyPoints", penaltyPoints.toString())
+
+    if (type === "interactive" && checkpoints) {
+      formData.append("checkpointsCount", checkpoints.length.toString())
+
+      checkpoints.forEach((checkpoint, index) => {
+        formData.append(`checkpoint_${index}_name`, checkpoint.name)
+        formData.append(`checkpoint_${index}_points`, checkpoint.points.toString())
+      })
+    }
+
+    const result = await updateChallengeAction(challengeId, formData)
+
+    if (result.success) {
+      clearCaches()
+      return true
+    }
+
+    throw new Error(result.error || "Failed to update challenge")
+  } catch (error) {
+    console.error("Error updating challenge:", error)
+    return false
+  }
+}
+
+// Delete a challenge
+export const deleteChallenge = async (challengeId: string): Promise<boolean> => {
+  try {
+    const result = await deleteChallengeAction(challengeId)
+
+    if (result.success) {
+      clearCaches()
+      return true
+    }
+
+    throw new Error(result.error || "Failed to delete challenge")
+  } catch (error) {
+    console.error("Error deleting challenge:", error)
     return false
   }
 }
@@ -261,11 +276,7 @@ export const addSubmission = async (
     const result = await addSubmissionAction(teamId, challengeId, submissionText, isCorrect)
 
     if (result.success) {
-      // Clear cache to force refresh
-      teamsCache = null
-      leaderboardDataCache = null
-      challengeStatsCache = null
-      submissionStatsCache = null
+      clearCaches()
       return true
     }
 
@@ -282,11 +293,7 @@ export const markNonInteractiveSolved = async (teamId: string, challengeId: stri
     const result = await markNonInteractiveSolvedAction(teamId, challengeId)
 
     if (result.success) {
-      // Clear cache to force refresh
-      teamsCache = null
-      leaderboardDataCache = null
-      challengeStatsCache = null
-      submissionStatsCache = null
+      clearCaches()
       return true
     }
 
@@ -307,11 +314,7 @@ export const markCheckpointsSolved = async (
     const result = await markCheckpointsSolvedAction(teamId, challengeId, checkpointIds)
 
     if (result.success) {
-      // Clear cache to force refresh
-      teamsCache = null
-      leaderboardDataCache = null
-      challengeStatsCache = null
-      submissionStatsCache = null
+      clearCaches()
       return true
     }
 
